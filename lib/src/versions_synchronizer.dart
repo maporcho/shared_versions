@@ -45,8 +45,10 @@ class VersionsSynchronizer {
       final line = pubspecFileLines[lineIndex];
       final trimLine = line.trim();
 
-      // Skip comment the yaml list
-      if (trimLine.startsWith("#") || !trimLine.contains(":")) {
+      final RegExp numberedDepRegex = RegExp(r"^[a-zA-Z_-]+: *\^?[0-9]");
+
+      // Skip lines that are not numbered dependencies
+      if (!numberedDepRegex.hasMatch(trimLine)) {
         newContent.writeln(line);
         ++lineIndex;
         continue;
