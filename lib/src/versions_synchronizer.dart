@@ -38,17 +38,29 @@ class VersionsSynchronizer {
     YamlMap? versionsMap = loadYaml(_versionsFile.readAsStringSync());
     final pubspecMap = loadYaml(pubspecFile.readAsStringSync());
     StringBuffer newContent = StringBuffer();
+    bool dependencySectionFound = false;
+    int spaceCount = 0;
 
     final pubspecFileLines = pubspecFile.readAsLinesSync();
     int lineIndex = 0;
     for (; lineIndex < pubspecFileLines.length;) {
       final line = pubspecFileLines[lineIndex];
-      final trimLine = line.trim();
+      final trimLine = line.trimRight();
 
-      final RegExp numberedDepRegex = RegExp(r"^[a-zA-Z_-]+: *\^?[0-9]");
+      final RegExp numberedDepRegex = RegExp(r"[a-zA-Z_-]+: *\^?[0-9]");
+
+      if (dependencySectionFound) {
+        spaceCount = ' '.allMatches(trimLine).length;
+        dependencySectionFound = false;
+      }
 
       // Skip lines that are not numbered dependencies
-      if (!numberedDepRegex.hasMatch(trimLine)) {
+      if (!numberedDepRegex.hasMatch(trimLine) ||
+          ' '.allMatches(trimLine).length != spaceCount) {
+        if (trimLine.trim() == "dependencies:" ||
+            trimLine.trim() == "dev_dependencies:") {
+          dependencySectionFound = true;
+        }
         newContent.writeln(line);
         ++lineIndex;
         continue;
