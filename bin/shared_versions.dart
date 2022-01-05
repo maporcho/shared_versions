@@ -47,7 +47,9 @@ void main(List<String> arguments) {
     return;
   }
 
-  final pubspecFile = results["pubspec"];
+
+  final pubspecFilePath = results["pubspec"];
+  final pubspecFile = File(pubspecFilePath);
   if (!pubspecFile.existsSync()) {
     stderr.writeln("The \"pubspec.yaml}\" file is not exist.");
     return;
