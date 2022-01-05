@@ -36,10 +36,9 @@ class VersionsSynchronizer {
   /// If the matched versions is different, it will print the changes to the console.
   void syncTo(File pubspecFile) {
     YamlMap? versionsMap = loadYaml(_versionsFile.readAsStringSync());
-    final pubspecMap = loadYaml(pubspecFile.readAsStringSync());
     StringBuffer newContent = StringBuffer();
     bool dependencySectionFound = false;
-    int spaceCount = 0;
+    int spaceCount = -1;
 
     final pubspecFileLines = pubspecFile.readAsLinesSync();
     int lineIndex = 0;
@@ -50,13 +49,15 @@ class VersionsSynchronizer {
       final RegExp numberedDepRegex = RegExp(r"[a-zA-Z_-]+: *\^?[0-9]");
 
       if (dependencySectionFound) {
-        spaceCount = ' '.allMatches(trimLine).length;
+        spaceCount = ' '.allMatches(trimLine.split(":").first).length;
         dependencySectionFound = false;
       }
 
-      // Skip lines that are not numbered dependencies
+      // Skip lines that are not numbered dependencies or that look like
+      // dependencies but are nested under another key (eg. 'ref', nested
+      // under 'git')
       if (!numberedDepRegex.hasMatch(trimLine) ||
-          ' '.allMatches(trimLine).length != spaceCount) {
+          ' '.allMatches(trimLine.split(":").first).length != spaceCount) {
         if (trimLine.trim() == "dependencies:" ||
             trimLine.trim() == "dev_dependencies:") {
           dependencySectionFound = true;
@@ -68,32 +69,15 @@ class VersionsSynchronizer {
 
       final key = trimLine.split(":").first.trim();
       if (versionsMap!.containsKey(key)) {
-        if (trimLine.endsWith(":")) {
-          YamlMap? versionsValue = versionsMap[key];
-          YamlMap? pubspecValue = _findMapByKey(key, pubspecMap);
-          if (versionsValue.toString() != pubspecValue.toString()) {
-            final versionsValueLines =
-                map2Lines(key, line.indexOf(key), 0, versionsValue!);
-            newContent.write(versionsValueLines);
-
-            _stdout.write(
-                _createStdoutMessage(key, pubspecValue!, key, versionsValue));
-
-            final pubspecValueLineLength = _map2LinesCount(pubspecValue);
-            lineIndex += pubspecValueLineLength + 1;
-            continue;
-          }
-        } else {
-          final newLine =
-              line.substring(0, line.indexOf(":")) + ": " + versionsMap[key];
-          final trimNewLine = newLine.trim();
-          if (trimNewLine != trimLine) {
-            newContent.writeln(newLine);
-            _stdout.writeln(
-                "${_textWithRemovedColor(trimLine)} -> ${_textWithAddedColor(trimNewLine)}");
-            ++lineIndex;
-            continue;
-          }
+        final newLine =
+            line.substring(0, line.indexOf(":")) + ": " + versionsMap[key];
+        final trimNewLine = newLine.trim();
+        if (trimNewLine != trimLine.trim()) {
+          newContent.writeln(newLine);
+          _stdout.writeln(
+              "${_textWithRemovedColor(trimLine)} -> ${_textWithAddedColor(trimNewLine)}");
+          ++lineIndex;
+          continue;
         }
       }
 
