@@ -29,6 +29,10 @@ void main(List<String> arguments) {
       abbr: "p",
       defaultsTo: "shared_versions.yaml",
       help: "The path of the versions file, which should be a yaml file");
+  parser.addOption("pubspec",
+      abbr: "u",
+      defaultsTo: "pubspec.yaml",
+      help: "The path of the pubspec.yaml file");
 
   final results = parser.parse(arguments);
   if ((results.rest.isNotEmpty) || !results["path"].endsWith(".yaml")) {
@@ -43,7 +47,7 @@ void main(List<String> arguments) {
     return;
   }
 
-  final pubspecFile = File('pubspec.yaml');
+  final pubspecFile = results["pubspec"];
   if (!pubspecFile.existsSync()) {
     stderr.writeln("The \"pubspec.yaml}\" file is not exist.");
     return;
